@@ -1,8 +1,9 @@
-# MY MINI COMPILER
+# My mini compiler
 
 ## Intro
 
-Mini scripting language, compiler written in rust, still deciding what to compile to.
+A mini compiler, written in rust. Still deciding what to compile to.
+Only a lexer at the moment...
 
 ## Features
 
