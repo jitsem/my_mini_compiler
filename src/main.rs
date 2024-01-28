@@ -1,6 +1,7 @@
 use crate::lexing::lexer::{Lexer, TokenKind};
 const INPUT: &str = include_str!("../data/example1.scrpt");
 mod lexing;
+mod parsing;
 fn main() {
     println!("Analzing input!");
     println!("Analzing input!");
