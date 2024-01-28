@@ -143,28 +143,28 @@ impl<'a> Lexer<'a> {
                 '}' => Token::new(TokenKind::CloseCurly, c.into()),
                 ';' => Token::new(TokenKind::SemiColon, c.into()),
                 '<' => match self.peek_next_char() {
-                    Some(second) if second == '=' => {
+                    Some('=') => {
                         self.next_char().ok_or(LexerError)?;
                         Token::new(TokenKind::LessThanEquals, format!("{}=", c))
                     }
                     _ => Token::new(TokenKind::LessThan, c.into()),
                 },
                 '>' => match self.peek_next_char() {
-                    Some(second) if second == '=' => {
+                    Some('=') => {
                         self.next_char().ok_or(LexerError)?;
                         Token::new(TokenKind::GreaterThanEquals, format!("{}=", c))
                     }
                     _ => Token::new(TokenKind::GreaterThan, c.into()),
                 },
                 '=' => match self.peek_next_char() {
-                    Some(second) if second == '=' => {
+                    Some('=') => {
                         self.next_char().ok_or(LexerError)?;
                         Token::new(TokenKind::EqualsEquals, format!("{}=", c))
                     }
                     _ => Token::new(TokenKind::Equals, c.into()),
                 },
                 '!' => match self.peek_next_char() {
-                    Some(second) if second == '=' => {
+                    Some('=') => {
                         self.next_char().ok_or(LexerError)?;
                         Token::new(TokenKind::NotEquals, format!("{}=", c))
                     }
@@ -365,6 +365,6 @@ mod tests {
         assert_eq!(iter.next().unwrap().kind, TokenKind::Print);
         assert_eq!(iter.next().unwrap().kind, TokenKind::SemiColon);
         assert_eq!(iter.next().unwrap().kind, TokenKind::Input);
-        assert_eq!(iter.next().is_none(), true);
+        assert!(iter.next().is_none());
     }
 }
