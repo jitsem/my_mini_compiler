@@ -4,15 +4,13 @@ mod lexing;
 fn main() {
     println!("Analzing input!");
     println!("Analzing input!");
-    let mut lex = Lexer::from(INPUT);
-    loop {
-        let token = lex.next_token().unwrap();
-        println!("{:?}", token.kind);
-        if token.kind == TokenKind::Unexpected {
-            eprintln!("UNEXPECTED TOKEN: {}", token.data.raw)
-        }
-        if token.kind == TokenKind::Eof {
-            break;
+    let lex = Lexer::from(INPUT);
+    let mut tokens = lex.into_iter();
+    while let Some(t) = tokens.next() {
+        println!("{:?}", t.kind);
+        if t.kind == TokenKind::Invalid {
+            eprintln!("Invalid TOKEN: {}", t.data.raw)
         }
     }
+    println!("Done!");
 }

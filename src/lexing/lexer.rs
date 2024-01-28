@@ -47,10 +47,11 @@ pub enum TokenKind {
     SemiColon,
     Print,
     Input,
-    Unexpected,
+    Invalid,
     Whitespace,
     Identifier,
     Eof,
+    TokenizationError,
 }
 
 impl Token {
@@ -58,6 +59,17 @@ impl Token {
         Token {
             kind,
             data: TokenData { raw: data },
+        }
+    }
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Token;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_token() {
+            Ok(t) if t.kind == TokenKind::Eof => None,
+            Ok(t) => Some(t),
+            Err(_) => Some(Token::new(TokenKind::TokenizationError, "".into())),
         }
     }
 }
@@ -156,7 +168,7 @@ impl<'a> Lexer<'a> {
                         self.next_char().ok_or(LexerError)?;
                         Token::new(TokenKind::NotEquals, format!("{}=", c))
                     }
-                    _ => Token::new(TokenKind::Unexpected, c.into()),
+                    _ => Token::new(TokenKind::Invalid, c.into()),
                 },
                 '"' => {
                     let mut str = String::new();
@@ -164,13 +176,13 @@ impl<'a> Lexer<'a> {
                     loop {
                         let next = self.next_char();
                         match next {
-                            None => break Token::new(TokenKind::Unexpected, str),
+                            None => break Token::new(TokenKind::Invalid, str),
                             Some(c) => {
                                 str.push(c);
                                 match c {
                                     '\"' => break Token::new(TokenKind::LiteralString, str),
-                                    '\n' => break Token::new(TokenKind::Unexpected, str),
-                                    '\r' => break Token::new(TokenKind::Unexpected, str),
+                                    '\n' => break Token::new(TokenKind::Invalid, str),
+                                    '\r' => break Token::new(TokenKind::Invalid, str),
                                     _ => {}
                                 }
                             }
@@ -178,7 +190,7 @@ impl<'a> Lexer<'a> {
                     }
                 }
 
-                _ => Token::new(TokenKind::Unexpected, c.into()),
+                _ => Token::new(TokenKind::Invalid, c.into()),
             },
         };
         self.next_char();
@@ -229,7 +241,7 @@ mod tests {
             lexer.next_token().unwrap().kind,
             TokenKind::GreaterThanEquals
         );
-        assert_eq!(lexer.next_token().unwrap().kind, TokenKind::Unexpected);
+        assert_eq!(lexer.next_token().unwrap().kind, TokenKind::Invalid);
         assert_eq!(lexer.next_token().unwrap().kind, TokenKind::Whitespace);
         assert_eq!(lexer.next_token().unwrap().kind, TokenKind::Whitespace);
         assert_eq!(lexer.next_token().unwrap().kind, TokenKind::Whitespace);
@@ -250,7 +262,7 @@ mod tests {
     fn test_multiline_string_not_allowed() {
         let mut lexer = Lexer::from("\"Hell\nWorld\"");
         let token = lexer.next_token().unwrap();
-        assert_eq!(token.kind, TokenKind::Unexpected);
+        assert_eq!(token.kind, TokenKind::Invalid);
         assert_eq!(token.data.raw, "\"Hell\n");
     }
 
@@ -258,7 +270,7 @@ mod tests {
     fn test_unclose_string_not_allowed() {
         let mut lexer = Lexer::from("\"Hello World");
         let token = lexer.next_token().unwrap();
-        assert_eq!(token.kind, TokenKind::Unexpected);
+        assert_eq!(token.kind, TokenKind::Invalid);
         assert_eq!(token.data.raw, "\"Hello World");
     }
 
@@ -329,5 +341,30 @@ mod tests {
         let token = lexer.next_token().unwrap();
         assert_eq!(token.kind, TokenKind::Identifier);
         assert_eq!(token.data.raw, "World");
+    }
+
+    #[test]
+    fn test_interator() {
+        let lexer = Lexer::from("let if else while while= whileif hello\nprint;input");
+        let mut iter = lexer.into_iter();
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Let);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::If);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Else);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::While);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::While);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Equals);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Identifier);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Identifier);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Print);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::SemiColon);
+        assert_eq!(iter.next().unwrap().kind, TokenKind::Input);
+        assert_eq!(iter.next().is_none(), true);
     }
 }
