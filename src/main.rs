@@ -1,3 +1,5 @@
+use std::fs;
+
 use crate::{
     emitting::emitter::CEmitter,
     lexing::lexer::{Lexer, Token, TokenKind},
@@ -13,9 +15,9 @@ fn main() {
     let lex = Lexer::from(INPUT);
     let tokens = lex.into_iter().collect::<Vec<Token>>();
     for t in tokens.iter() {
-        println!("{:?}", t.kind);
         if t.kind == TokenKind::Invalid {
-            eprintln!("Invalid TOKEN: {}", t.data.raw)
+            eprintln!("Invalid TOKEN: {}", t.data.raw);
+            return;
         }
     }
     println!("Done lexing!");
@@ -24,11 +26,11 @@ fn main() {
     let res = parser.parse();
     match res {
         Ok(statements) => {
-            println!("Done Parsing!");
-            println!("{:#?}", statements);
+            println!("Done Parsing!\n");
             let emitter = CEmitter::new(&statements);
             let code = emitter.emit();
-            println!("{}", code);
+            println!("Writing to test.c");
+            fs::write("target/debug/test.c", code).expect("Unable to write file");
         }
         Err(e) => {
             eprintln!("Unexpected token:{:?} ; {:?}", e.token, e.reason)

@@ -2,9 +2,33 @@ use crate::parsing::parser::{
     Comparison, Expression, ExpressionOp, Identifier, Primary, PrintOption, Statement, Term,
     TermOp, Unary,
 };
+pub struct Indent {
+    indent_level: usize,
+}
+
+impl Indent {
+    pub fn new() -> Self {
+        Indent { indent_level: 0 }
+    }
+
+    pub fn increase(&mut self) {
+        self.indent_level += 1;
+    }
+
+    pub fn decrease(&mut self) {
+        if self.indent_level > 0 {
+            self.indent_level -= 1;
+        }
+    }
+
+    pub fn current_indent(&self) -> String {
+        "\t".repeat(self.indent_level)
+    }
+}
 pub struct CEmitter {
     statements: Vec<Statement>,
     code: String,
+    indentor: Indent,
 }
 
 impl CEmitter {
@@ -13,39 +37,40 @@ impl CEmitter {
         CEmitter {
             statements: program.to_vec(),
             code: String::new(),
+            indentor: Indent::new(),
         }
     }
 
     pub fn emit(mut self) -> String {
         self.code.push_str("#include <stdio.h>\n");
         self.code.push_str("int main(void){\n");
+        self.indentor.increase();
         for statement in self.statements.clone().into_iter() {
-            self.code.push_str(&Self::emit_statement(&statement, 0));
+            self.code
+                .push_str(&Self::emit_statement(&statement, &mut self.indentor));
         }
         self.code.push_str("\treturn 0;\n}\n");
         self.code
     }
 
-    fn emit_statement(statement: &Statement, level: i32) -> String {
+    fn emit_statement(statement: &Statement, indent: &mut Indent) -> String {
         let mut emit = String::new();
-        for _ in 0..=level {
-            emit.push('\t')
-        }
+        emit.push_str(&indent.current_indent());
         match statement {
             Statement::Print { option } => emit.push_str(&Self::emit_print(option)),
             Statement::If {
                 comparison,
                 statements,
-            } => emit.push_str(&Self::emit_if(comparison, statements, level)),
+            } => emit.push_str(&Self::emit_if(comparison, statements, indent)),
             Statement::While {
                 comparison,
                 statements,
-            } => emit.push_str(&Self::emit_while(comparison, statements, level)),
+            } => emit.push_str(&Self::emit_while(comparison, statements, indent)),
             Statement::Let {
                 identifier,
                 expression,
             } => emit.push_str(&Self::emit_let(identifier, expression)),
-            Statement::Input { identifier } => emit.push_str(&Self::emit_input(identifier, level)),
+            Statement::Input { identifier } => emit.push_str(&Self::emit_input(identifier, indent)),
             Statement::Assign {
                 identifier,
                 expression,
@@ -69,27 +94,32 @@ impl CEmitter {
         }
         emit
     }
-    fn emit_if(comparison: &Comparison, statements: &[Statement], level: i32) -> String {
+    fn emit_if(comparison: &Comparison, statements: &[Statement], indent: &mut Indent) -> String {
         let mut emit = String::new();
         emit.push_str(format!("if ({}) {{\n", &Self::emit_comparison(comparison)).as_str());
+        indent.increase();
         for statement in statements {
-            emit.push_str(Self::emit_statement(statement, level + 1).as_str())
+            emit.push_str(Self::emit_statement(statement, indent).as_str())
         }
-        for _ in 0..=level {
-            emit.push('\t')
-        }
+        indent.decrease();
+        emit.push_str(&indent.current_indent());
         emit.push('}');
         emit
     }
-    fn emit_while(comparison: &Comparison, statements: &[Statement], level: i32) -> String {
+    fn emit_while(
+        comparison: &Comparison,
+        statements: &[Statement],
+        indent: &mut Indent,
+    ) -> String {
         let mut emit = String::new();
         emit.push_str(format!("while ({}) {{\n", &Self::emit_comparison(comparison)).as_str());
+        indent.increase();
         for statement in statements {
-            emit.push_str(Self::emit_statement(statement, level + 1).as_str())
+            emit.push_str(Self::emit_statement(statement, indent).as_str())
         }
-        for _ in 0..=level {
-            emit.push('\t')
-        }
+        indent.decrease();
+        emit.push_str(&indent.current_indent());
+
         emit.push('}');
         emit
     }
@@ -105,21 +135,23 @@ impl CEmitter {
         );
         emit
     }
-    fn emit_input(identifier: &Identifier, level: i32) -> String {
+    fn emit_input(identifier: &Identifier, indent: &mut Indent) -> String {
         // float c;
         // if(0 == scanf("%f", &c)) {
         //     c = 0;
         //     scanf("%*s");
         //     }
         let mut emit = String::new();
-        let mut tabs = String::new();
-        for _ in 0..=level {
-            tabs.push('\t')
-        }
         emit.push_str(
             format!(
                 "float {};\n{}if(0==scanf(\"%f\", &{})) {{\n{}\t{} = 0;\n{}\tscanf(\"%*s\");\n{}}}",
-                identifier.id, tabs, identifier.id, tabs, identifier.id, tabs, tabs
+                identifier.id,
+                &indent.current_indent(),
+                identifier.id,
+                &indent.current_indent(),
+                identifier.id,
+                &indent.current_indent(),
+                &indent.current_indent()
             )
             .as_str(),
         );

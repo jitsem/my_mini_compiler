@@ -1,4 +1,4 @@
-print "How many fibonaccis to print\n";
+print "How many fibonaccis nrs to print\n";
 input nums;
 
 let a = 0;
