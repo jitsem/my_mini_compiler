@@ -30,7 +30,7 @@ closeCurly ::= '}'
 
 */
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Print {
         option: PrintOption,
@@ -57,7 +57,7 @@ pub enum Statement {
         expression: Expression,
     },
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Comparison {
     GreaterThan { lhs: Expression, rhs: Expression },
     GreaterThanEquals { lhs: Expression, rhs: Expression },
@@ -67,15 +67,49 @@ pub enum Comparison {
     NotEquals { lhs: Expression, rhs: Expression },
 }
 
-#[derive(Debug)]
-pub struct Expression {}
+#[derive(Debug, Clone)]
+pub struct Expression {
+    lhs: Term,
+    rhs: Box<Option<ExpressionOp>>,
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum ExpressionOp {
+    Plus(Expression),
+    Minus(Expression),
+}
+
+#[derive(Debug, Clone)]
+pub struct Term {
+    lhs: Unary,
+    rhs: Box<Option<TermOp>>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TermOp {
+    Multiply(Term),
+    Divide(Term),
+}
+
+#[derive(Debug, Clone)]
+pub enum Unary {
+    Positive(Primary),
+    Negative(Primary),
+    UnSigned(Primary),
+}
+
+#[derive(Debug, Clone)]
+pub enum Primary {
+    LiteralNumber(i64),
+    IdentifierExpression(Identifier),
+}
+
+#[derive(Debug, Clone)]
 pub struct Identifier {
     id: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PrintOption {
     PrintLiteral(String),
     PrintExpression(Expression),
@@ -224,30 +258,75 @@ impl Parser {
     }
 
     fn match_expression(&mut self) -> ParserResult<Expression> {
-        self.match_term()?;
-        while self.is_current_plus_minus_token() {
-            self.advance_token();
-            self.match_term()?;
-        }
-        Ok(Expression {})
+        let lhs = self.match_term()?;
+        let token = {
+            if self.is_current_plus_minus_token() {
+                Some(self.match_plus_minus_token()?)
+            } else {
+                None
+            }
+        };
+        let rhs = match token {
+            Some(TokenKind::Plus) => {
+                let exp = self.match_expression()?;
+                Some(ExpressionOp::Plus(exp))
+            }
+            Some(TokenKind::Minus) => {
+                let exp = self.match_expression()?;
+                Some(ExpressionOp::Minus(exp))
+            }
+            Some(_) => panic!("Should not come here"),
+            None => None,
+        };
+        Ok(Expression {
+            lhs,
+            rhs: Box::new(rhs),
+        })
     }
 
-    fn match_term(&mut self) -> ParserResult<()> {
-        self.match_unary()?;
-        while self.is_current_asterix_slash_token() {
-            self.advance_token();
-            self.match_unary()?;
-        }
-        Ok(())
+    fn match_term(&mut self) -> ParserResult<Term> {
+        let lhs = self.match_unary()?;
+        let token = {
+            if self.is_current_asterix_slash_token() {
+                Some(self.match_asterix_slash_token()?)
+            } else {
+                None
+            }
+        };
+        let rhs = match token {
+            Some(TokenKind::Asterisk) => {
+                let term = self.match_term()?;
+                Some(TermOp::Multiply(term))
+            }
+            Some(TokenKind::Slash) => {
+                let term = self.match_term()?;
+                Some(TermOp::Divide(term))
+            }
+            Some(_) => panic!("Should not come here"),
+            None => None,
+        };
+        Ok(Term {
+            lhs,
+            rhs: Box::new(rhs),
+        })
     }
-    fn match_unary(&mut self) -> ParserResult<()> {
-        if self.is_current_plus_minus_token() {
-            self.advance_token();
+    fn match_unary(&mut self) -> ParserResult<Unary> {
+        let token = {
+            if self.is_current_plus_minus_token() {
+                Some(self.match_plus_minus_token()?)
+            } else {
+                None
+            }
+        };
+        let primary = self.match_primary()?;
+        match token {
+            Some(TokenKind::Plus) => Ok(Unary::Positive(primary)),
+            Some(TokenKind::Minus) => Ok(Unary::Negative(primary)),
+            Some(_) => panic!("Should not come here"),
+            None => Ok(Unary::UnSigned(primary)),
         }
-        self.match_primary()?;
-        Ok(())
     }
-    fn match_primary(&mut self) -> ParserResult<()> {
+    fn match_primary(&mut self) -> ParserResult<Primary> {
         if self.is_current_token(TokenKind::Identifier) {
             let identifier = self.match_identifier()?;
             if !self.identifiers.contains(&identifier.id) {
@@ -257,11 +336,12 @@ impl Parser {
                     reason: Some(format!("Identifier {} is never declared", &identifier.id)),
                 });
             } else {
-                println!("{}", &identifier.id) //TODO
+                return Ok(Primary::IdentifierExpression(identifier));
             }
         } else if self.is_current_literal_number() {
             //TODO capture Literal NR
             self.advance_token();
+            return Ok(Primary::LiteralNumber(0));
         } else {
             return Err(ParserError {
                 token: self.current_token().cloned(),
@@ -269,7 +349,6 @@ impl Parser {
                 reason: Some("Expected Identifier or literal nr".to_string()),
             });
         }
-        Ok(())
     }
 
     fn match_comparison(&mut self) -> ParserResult<Comparison> {
@@ -338,6 +417,34 @@ impl Parser {
                 token: None,
                 expected: None,
                 reason: Some("Expected comparison token".to_string()),
+            })
+        }
+    }
+
+    fn match_plus_minus_token(&mut self) -> ParserResult<TokenKind> {
+        if self.is_current_plus_minus_token() {
+            let kind = self.current_token().unwrap().kind;
+            self.advance_token();
+            Ok(kind)
+        } else {
+            Err(ParserError {
+                token: None,
+                expected: None,
+                reason: Some("Expected signed token".to_string()),
+            })
+        }
+    }
+
+    fn match_asterix_slash_token(&mut self) -> ParserResult<TokenKind> {
+        if self.is_current_asterix_slash_token() {
+            let kind = self.current_token().unwrap().kind;
+            self.advance_token();
+            Ok(kind)
+        } else {
+            Err(ParserError {
+                token: None,
+                expected: None,
+                reason: Some("Expected * or / token".to_string()),
             })
         }
     }
