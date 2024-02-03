@@ -37,11 +37,11 @@ pub struct Parser {
 
 impl Parser {
     //Todo, allow less explicit token input
-    pub fn new(tokens: &Vec<Token>) -> Self {
+    pub fn new(tokens: &[Token]) -> Self {
         let tokens: Vec<Token> = tokens
             .iter()
-            .cloned()
             .filter(|t| t.kind != TokenKind::Whitespace)
+            .cloned()
             .collect();
         let identifiers: HashSet<String> = HashSet::new();
         Self {
@@ -235,14 +235,14 @@ impl Parser {
     }
 
     fn match_token(&mut self, token_kind: TokenKind) -> ParserResult<()> {
-        if self.is_current_token(token_kind.clone()) {
+        if self.is_current_token(token_kind) {
             println!("{:?}", token_kind);
             self.advance_token();
             Ok(())
         } else {
             Err(ParserError {
                 token: self.current_token().cloned(),
-                expected: Some(token_kind.clone()),
+                expected: Some(token_kind),
                 reason: Some(format!("Expected {:?}", token_kind)),
             })
         }
@@ -266,10 +266,7 @@ impl Parser {
     }
     fn is_current_literal_number(&self) -> bool {
         match self.current_token() {
-            Some(t) => match t.kind {
-                TokenKind::LiteralNumber(_) => true,
-                _ => false,
-            },
+            Some(t) => matches!(t.kind, TokenKind::LiteralNumber(_)),
             None => false,
         }
     }
