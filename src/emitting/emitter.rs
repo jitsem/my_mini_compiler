@@ -32,7 +32,6 @@ pub struct CEmitter {
 }
 
 impl CEmitter {
-    //todo should program be wrapped?
     pub fn new(program: &[Statement]) -> Self {
         CEmitter {
             statements: program.to_vec(),
@@ -45,9 +44,9 @@ impl CEmitter {
         self.code.push_str("#include <stdio.h>\n");
         self.code.push_str("int main(void){\n");
         self.indentor.increase();
-        for statement in self.statements.clone().into_iter() {
+        for statement in &self.statements {
             self.code
-                .push_str(&Self::emit_statement(&statement, &mut self.indentor));
+                .push_str(&Self::emit_statement(statement, &mut self.indentor));
         }
         self.code.push_str("\treturn 0;\n}\n");
         self.code

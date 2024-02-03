@@ -5,35 +5,79 @@ use crate::{
     lexing::lexer::{Lexer, Token, TokenKind},
     parsing::parser::Parser,
 };
-const INPUT: &str = include_str!("../data/example1.scrpt");
 mod emitting;
 mod lexing;
 mod parsing;
+use clap::{Arg, Command};
+use std::process;
+
 fn main() {
-    println!("Start Compiling!");
-    println!("Lexing input!");
-    let lex = Lexer::from(INPUT);
-    let tokens = lex.into_iter().collect::<Vec<Token>>();
-    for t in tokens.iter() {
-        if t.kind == TokenKind::Invalid {
-            eprintln!("Invalid TOKEN: {}", t.data.raw);
-            return;
-        }
+    let matches = Command::new("mcc")
+        .version("1.0")
+        .about("My mini compiler which compiles to C.")
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .value_name("FILE")
+                .help("Writes output to a file"),
+        )
+        .arg(
+            Arg::new("target")
+                .short('t')
+                .long("target")
+                .value_name("TARGET")
+                .default_value("C")
+                .help("Sets the target language for the output, defaults to C"),
+        )
+        .arg(
+            Arg::new("input")
+                .help("Sets the input file to use")
+                .value_name("INPUT")
+                .required(true)
+                .index(1),
+        )
+        .get_matches();
+
+    let target = matches.get_one::<String>("target").unwrap();
+    if target != "C" {
+        eprintln!("Currently, only 'C' target is supported.");
+        process::exit(1);
     }
-    println!("Done lexing!");
-    println!("Parsing tokens!");
+
+    let input_file = matches.get_one::<String>("input").unwrap();
+
+    let input = fs::read_to_string(input_file).expect("Unable to read input file");
+
+    let lex = Lexer::from(&input);
+    let tokens: Vec<Token> = lex.into_iter().collect();
+
+    if tokens.iter().any(|t| t.kind == TokenKind::Invalid) {
+        eprintln!("Found invalid tokens during lexing.");
+        process::exit(1);
+    }
+
     let parser = Parser::new(&tokens);
-    let res = parser.parse();
-    match res {
+    let parse_result = parser.parse();
+
+    match parse_result {
         Ok(statements) => {
-            println!("Done Parsing!\n");
             let emitter = CEmitter::new(&statements);
             let code = emitter.emit();
-            println!("Writing to test.c");
-            fs::write("target/debug/test.c", code).expect("Unable to write file");
+
+            if let Some(output_file) = matches.get_one::<String>("output") {
+                fs::write(output_file, code).expect("Unable to write output file");
+                println!("Code written to {}", output_file);
+            } else {
+                println!("{}", code);
+            }
         }
         Err(e) => {
-            eprintln!("Unexpected token:{:?} ; {:?}", e.token, e.reason)
+            eprintln!(
+                "Parsing error: Unexpected token:{:?}; Reason: {:?}",
+                e.token, e.reason
+            );
+            process::exit(1);
         }
     }
 }

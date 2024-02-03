@@ -11,7 +11,7 @@ Currently C...
 - [x] Parsing
 - [x] Emiting
 
-- [ ] Better CLI
+- [x] Better CLI
 - [ ] New Target -> .NET IL
 - [ ] Work on performance
 
