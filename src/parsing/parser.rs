@@ -69,8 +69,8 @@ pub enum Comparison {
 
 #[derive(Debug, Clone)]
 pub struct Expression {
-    lhs: Term,
-    rhs: Box<Option<ExpressionOp>>,
+    pub lhs: Term,
+    pub rhs: Box<Option<ExpressionOp>>,
 }
 
 #[derive(Debug, Clone)]
@@ -81,8 +81,8 @@ pub enum ExpressionOp {
 
 #[derive(Debug, Clone)]
 pub struct Term {
-    lhs: Unary,
-    rhs: Box<Option<TermOp>>,
+    pub lhs: Unary,
+    pub rhs: Box<Option<TermOp>>,
 }
 
 #[derive(Debug, Clone)]
@@ -106,7 +106,7 @@ pub enum Primary {
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
-    id: String,
+    pub id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -159,8 +159,15 @@ impl Parser {
             self.advance_token();
             let option = {
                 if self.is_current_token(TokenKind::LiteralString) {
+                    let literal: String = self
+                        .current_token()
+                        .expect("Expected current token")
+                        .data
+                        .raw
+                        .replace('\"', "") //TODO could be cleaner
+                        .to_string();
                     self.advance_token();
-                    PrintOption::PrintLiteral("TODO".to_string()) //TODO get literal
+                    PrintOption::PrintLiteral(literal)
                 } else {
                     let expression = self.match_expression()?;
                     PrintOption::PrintExpression(expression)
@@ -336,12 +343,18 @@ impl Parser {
                     reason: Some(format!("Identifier {} is never declared", &identifier.id)),
                 });
             } else {
-                return Ok(Primary::IdentifierExpression(identifier));
+                Ok(Primary::IdentifierExpression(identifier))
             }
         } else if self.is_current_literal_number() {
-            //TODO capture Literal NR
+            let nr: i64 = self
+                .current_token()
+                .expect("Expected current token")
+                .data
+                .raw
+                .parse()
+                .expect("expected valid nr");
             self.advance_token();
-            return Ok(Primary::LiteralNumber(0));
+            return Ok(Primary::LiteralNumber(nr));
         } else {
             return Err(ParserError {
                 token: self.current_token().cloned(),

@@ -1,5 +1,5 @@
 use crate::{
-    emitting::emitter::{self, CEmitter},
+    emitting::emitter::CEmitter,
     lexing::lexer::{Lexer, Token, TokenKind},
     parsing::parser::Parser,
 };

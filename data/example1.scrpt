@@ -1,4 +1,4 @@
-print "How many fibonacci numbers do you want?";
+print "How many fibonaccis to print\n";
 input nums;
 
 let a = 0;
@@ -9,10 +9,11 @@ while nums > 0
     let c = a + b;
     a = b;
     b = c;
-    nums = nums * 5 - 10 / -nums;
+    nums = nums - 1;
 }
 
-if a == b
+if a != b
 {
-    print "Equals";
+    print "Extra crap\n";
+    print -a * b + b /-5;
 }
