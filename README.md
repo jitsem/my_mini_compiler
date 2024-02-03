@@ -3,13 +3,13 @@
 ## Intro
 
 A mini compiler, written in rust. Still deciding what to compile to.
-Only a lexer at the moment...
+Currently C...
 
 ## Features
 
 - [x] Lexing
-- [ ] Parsing
-- [ ] Emiting
+- [x] Parsing
+- [x] Emiting
 
 ## Credits
 
@@ -18,8 +18,8 @@ Only a lexer at the moment...
 
 ## Example
 
-```
-print "How many fibonacci numbers do you want?";
+```C
+print "How many fibonaccis nrs to print\n";
 input nums;
 
 let a = 0;
@@ -28,18 +28,14 @@ while nums > 0
 {
     print a;
     let c = a + b;
-    let a = b;
-    let b = c;
-    let nums = nums - 1;
+    a = b;
+    b = c;
+    nums = nums - 1;
 }
 
-if a == b
+if a != b
 {
-    print "Equals";
-}
-else
-{
-    print a;
-    print b;
+    print "Extra crap\n";
+    print -a * b + b /-5;
 }
 ```
