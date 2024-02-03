@@ -18,11 +18,12 @@ fn main() {
     }
     println!("Done lexing!");
     println!("Parsing tokens!");
-    let mut parser = Parser::new(&tokens);
+    let parser = Parser::new(&tokens);
     let res = parser.parse();
     match res {
-        Ok(_) => {
+        Ok(statements) => {
             println!("Done Parsing!");
+            println!("{:#?}", statements)
         }
         Err(e) => {
             eprintln!("Unexpected token:{:?} ; {:?}", e.token, e.reason)

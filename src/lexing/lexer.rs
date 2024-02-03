@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn test_interator() {
         let lexer = Lexer::from("let if else while while= whileif hello\nprint;input");
-        let mut iter = lexer.into_iter();
+        let mut iter = lexer;
         assert_eq!(iter.next().unwrap().kind, TokenKind::Let);
         assert_eq!(iter.next().unwrap().kind, TokenKind::Whitespace);
         assert_eq!(iter.next().unwrap().kind, TokenKind::If);

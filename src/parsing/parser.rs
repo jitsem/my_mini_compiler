@@ -29,10 +29,63 @@ openCurly ::= '{'
 closeCurly ::= '}'
 
 */
+
+#[derive(Debug)]
+pub enum Statement {
+    Print {
+        option: PrintOption,
+    },
+    If {
+        comparison: Comparison,
+        statements: Vec<Statement>,
+    },
+
+    While {
+        comparison: Comparison,
+        statements: Vec<Statement>,
+    },
+
+    Let {
+        identifier: Identifier,
+        expression: Expression,
+    },
+    Input {
+        identifier: Identifier,
+    },
+    Assign {
+        identifier: Identifier,
+        expression: Expression,
+    },
+}
+#[derive(Debug)]
+pub enum Comparison {
+    GreaterThan { lhs: Expression, rhs: Expression },
+    GreaterThanEquals { lhs: Expression, rhs: Expression },
+    LessThan { lhs: Expression, rhs: Expression },
+    LessThanEquals { lhs: Expression, rhs: Expression },
+    EqualsEquals { lhs: Expression, rhs: Expression },
+    NotEquals { lhs: Expression, rhs: Expression },
+}
+
+#[derive(Debug)]
+pub struct Expression {}
+
+#[derive(Debug)]
+pub struct Identifier {
+    id: String,
+}
+
+#[derive(Debug)]
+pub enum PrintOption {
+    PrintLiteral(String),
+    PrintExpression(Expression),
+}
+
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     identifiers: HashSet<String>,
+    statements: Vec<Statement>,
 }
 
 impl Parser {
@@ -44,101 +97,123 @@ impl Parser {
             .cloned()
             .collect();
         let identifiers: HashSet<String> = HashSet::new();
+        let statements: Vec<Statement> = Vec::new();
         Self {
             tokens,
             current: 0,
             identifiers,
+            statements,
         }
     }
 
-    pub fn parse(&mut self) -> ParserResult<()> {
-        println!("PROGRAM");
+    pub fn parse(mut self) -> ParserResult<Vec<Statement>> {
         while let Some(token) = self.current_token() {
             match token.kind {
                 TokenKind::Eof => break,
-                _ => self.match_statement()?,
+                _ => {
+                    let statement = self.match_statement()?;
+                    self.statements.push(statement)
+                }
             }
         }
 
-        Ok(())
+        Ok(self.statements)
     }
 
-    fn match_statement(&mut self) -> ParserResult<()> {
+    fn match_statement(&mut self) -> ParserResult<Statement> {
         if self.is_current_token(TokenKind::Print) {
-            println!("STATEMENT-PRINT");
             self.advance_token();
-
-            if self.is_current_token(TokenKind::LiteralString) {
-                self.advance_token(); //TODO get literal
-            } else {
-                self.match_expression()?;
-            }
+            let option = {
+                if self.is_current_token(TokenKind::LiteralString) {
+                    self.advance_token();
+                    PrintOption::PrintLiteral("TODO".to_string()) //TODO get literal
+                } else {
+                    let expression = self.match_expression()?;
+                    PrintOption::PrintExpression(expression)
+                }
+            };
             self.match_token(TokenKind::SemiColon)?;
+            Ok(Statement::Print { option })
         } else if self.is_current_token(TokenKind::If) {
-            println!("STATEMENT-IF");
             self.advance_token();
-
-            self.match_comparison()?;
+            let mut statements = Vec::new();
+            let comparison = self.match_comparison()?;
             self.match_token(TokenKind::OpenCurly)?;
-            self.match_statement()?;
             while !self.is_current_token(TokenKind::CloseCurly) {
-                self.match_statement()?;
+                let statement = self.match_statement()?;
+                statements.push(statement);
             }
             self.match_token(TokenKind::CloseCurly)?;
+
+            return Ok(Statement::If {
+                comparison,
+                statements,
+            });
         } else if self.is_current_token(TokenKind::While) {
-            println!("STATEMENT-WHILE");
             self.advance_token();
 
-            self.match_comparison()?;
+            let mut statements = Vec::new();
+            let comparison = self.match_comparison()?;
             self.match_token(TokenKind::OpenCurly)?;
-            self.match_statement()?;
             while !self.is_current_token(TokenKind::CloseCurly) {
-                self.match_statement()?;
+                let statement = self.match_statement()?;
+                statements.push(statement);
             }
             self.match_token(TokenKind::CloseCurly)?;
+
+            return Ok(Statement::While {
+                comparison,
+                statements,
+            });
         } else if self.is_current_token(TokenKind::Let) {
-            println!("STATEMENT-LET");
             self.advance_token();
-            let id = self.match_identifier()?;
-            if self.identifiers.contains(&id) {
+            let identifier = self.match_identifier()?;
+            if self.identifiers.contains(&identifier.id) {
                 return Err(ParserError {
                     token: self.current_token().cloned(),
                     expected: None,
-                    reason: Some(format!("Identifier {} is already declared", id)),
+                    reason: Some(format!("Identifier {} is already declared", identifier.id)),
                 });
             } else {
-                self.identifiers.insert(id);
+                self.identifiers.insert(identifier.id.clone());
             }
             self.match_token(TokenKind::Equals)?;
-            self.match_expression()?;
+            let expression = self.match_expression()?;
             self.match_token(TokenKind::SemiColon)?;
+            Ok(Statement::Let {
+                identifier,
+                expression,
+            })
         } else if self.is_current_token(TokenKind::Input) {
-            println!("STATEMENT-INPUT");
             self.advance_token();
-            let id = self.match_identifier()?;
-            if self.identifiers.contains(&id) {
+            let identifier = self.match_identifier()?;
+            if self.identifiers.contains(&identifier.id) {
                 return Err(ParserError {
                     token: self.current_token().cloned(),
                     expected: None,
-                    reason: Some(format!("Identifier {} is already declared", id)),
+                    reason: Some(format!("Identifier {} is already declared", identifier.id)),
                 });
             } else {
-                self.identifiers.insert(id);
+                self.identifiers.insert(identifier.id.clone());
             }
             self.match_token(TokenKind::SemiColon)?;
+            Ok(Statement::Input { identifier })
         } else if self.is_current_token(TokenKind::Identifier) {
-            println!("STATEMENT-Assign");
-            let id = self.match_identifier()?;
-            if !self.identifiers.contains(&id) {
+            let identifier = self.match_identifier()?;
+            if !self.identifiers.contains(&identifier.id) {
                 return Err(ParserError {
                     token: self.current_token().cloned(),
                     expected: None,
-                    reason: Some(format!("Identifier {} is never declared", id)),
+                    reason: Some(format!("Identifier {} is never declared", identifier.id)),
                 });
             }
             self.match_token(TokenKind::Equals)?;
-            self.match_expression()?;
+            let expression = self.match_expression()?;
             self.match_token(TokenKind::SemiColon)?;
+            Ok(Statement::Assign {
+                identifier,
+                expression,
+            })
         } else {
             return Err(ParserError {
                 token: self.current_token().cloned(),
@@ -146,22 +221,18 @@ impl Parser {
                 reason: Some("Unknown statement".to_string()),
             });
         }
-
-        Ok(())
     }
 
-    fn match_expression(&mut self) -> ParserResult<()> {
-        println!("Expression");
+    fn match_expression(&mut self) -> ParserResult<Expression> {
         self.match_term()?;
         while self.is_current_plus_minus_token() {
             self.advance_token();
             self.match_term()?;
         }
-        Ok(())
+        Ok(Expression {})
     }
 
     fn match_term(&mut self) -> ParserResult<()> {
-        println!("Term");
         self.match_unary()?;
         while self.is_current_asterix_slash_token() {
             self.advance_token();
@@ -170,7 +241,6 @@ impl Parser {
         Ok(())
     }
     fn match_unary(&mut self) -> ParserResult<()> {
-        println!("Unary");
         if self.is_current_plus_minus_token() {
             self.advance_token();
         }
@@ -178,17 +248,16 @@ impl Parser {
         Ok(())
     }
     fn match_primary(&mut self) -> ParserResult<()> {
-        println!("Primary");
         if self.is_current_token(TokenKind::Identifier) {
-            let id = self.match_identifier()?;
-            if !self.identifiers.contains(&id) {
+            let identifier = self.match_identifier()?;
+            if !self.identifiers.contains(&identifier.id) {
                 return Err(ParserError {
                     token: self.current_token().cloned(),
                     expected: None,
-                    reason: Some(format!("Identifier {} is never declared", id)),
+                    reason: Some(format!("Identifier {} is never declared", &identifier.id)),
                 });
             } else {
-                println!("{}", id)
+                println!("{}", &identifier.id) //TODO
             }
         } else if self.is_current_literal_number() {
             //TODO capture Literal NR
@@ -203,28 +272,40 @@ impl Parser {
         Ok(())
     }
 
-    fn match_comparison(&mut self) -> ParserResult<()> {
-        println!("COMPARISON");
-
-        self.match_expression()?;
+    fn match_comparison(&mut self) -> ParserResult<Comparison> {
+        let lhs = self.match_expression()?;
         if self.is_current_comparison_token() {
-            self.advance_token();
-            self.match_expression()?;
+            let token = self.match_comparison_token()?;
+            let rhs = self.match_expression()?;
+            match token {
+                TokenKind::GreaterThan => Ok(Comparison::GreaterThan { lhs, rhs }),
+                TokenKind::GreaterThanEquals => Ok(Comparison::GreaterThanEquals { lhs, rhs }),
+                TokenKind::LessThan => Ok(Comparison::LessThan { lhs, rhs }),
+                TokenKind::LessThanEquals => Ok(Comparison::LessThanEquals { lhs, rhs }),
+                TokenKind::EqualsEquals => Ok(Comparison::EqualsEquals { lhs, rhs }),
+                TokenKind::NotEquals => Ok(Comparison::NotEquals { lhs, rhs }),
+                _ => panic!("Should not come here"),
+            }
+        } else {
+            return Err(ParserError {
+                token: self.current_token().cloned(),
+                expected: None,
+                reason: Some("Expected comparison operator".to_string()),
+            });
         }
 
-        while self.is_current_comparison_token() {
-            self.advance_token();
-            self.match_expression()?;
-        }
-        Ok(())
+        // TODO comparisons can be chained.
+        // while self.is_current_comparison_token() {
+        //     self.advance_token();
+        //     self.match_expression()?;
+        // }
     }
 
-    fn match_identifier(&mut self) -> ParserResult<String> {
+    fn match_identifier(&mut self) -> ParserResult<Identifier> {
         if self.is_current_token(TokenKind::Identifier) {
-            println!("Identifier");
             let id = self.current_token().unwrap().data.raw.clone();
             self.advance_token();
-            return Ok(id);
+            return Ok(Identifier { id });
         }
 
         Err(ParserError {
@@ -236,7 +317,6 @@ impl Parser {
 
     fn match_token(&mut self, token_kind: TokenKind) -> ParserResult<()> {
         if self.is_current_token(token_kind) {
-            println!("{:?}", token_kind);
             self.advance_token();
             Ok(())
         } else {
@@ -244,6 +324,20 @@ impl Parser {
                 token: self.current_token().cloned(),
                 expected: Some(token_kind),
                 reason: Some(format!("Expected {:?}", token_kind)),
+            })
+        }
+    }
+
+    fn match_comparison_token(&mut self) -> ParserResult<TokenKind> {
+        if self.is_current_comparison_token() {
+            let kind = self.current_token().unwrap().kind;
+            self.advance_token();
+            Ok(kind)
+        } else {
+            Err(ParserError {
+                token: None,
+                expected: None,
+                reason: Some("Expected comparison token".to_string()),
             })
         }
     }
@@ -318,7 +412,7 @@ mod tests {
             TokenKind::LiteralString,
             TokenKind::SemiColon,
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -334,7 +428,7 @@ mod tests {
             TokenKind::LiteralString,
             TokenKind::SemiColon,
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -347,7 +441,7 @@ mod tests {
             TokenKind::LiteralString,
             TokenKind::SemiColon,
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -371,7 +465,7 @@ mod tests {
             TokenKind::CloseCurly,
             TokenKind::Whitespace
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -395,7 +489,7 @@ mod tests {
             TokenKind::CloseCurly,
             TokenKind::Whitespace
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -413,7 +507,7 @@ mod tests {
             TokenKind::Whitespace,
             TokenKind::SemiColon,
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -427,7 +521,7 @@ mod tests {
             TokenKind::Whitespace,
             TokenKind::SemiColon,
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
@@ -451,7 +545,7 @@ mod tests {
             TokenKind::LiteralNumber(664),
             TokenKind::SemiColon
         ];
-        let mut parser = Parser::new(&tokens);
+        let parser = Parser::new(&tokens);
         let res = parser.parse();
         assert!(res.is_ok(), "Test failed with error: {:?}", res);
     }
