@@ -7,17 +7,12 @@ while nums > 0
 {
     print a;
     let c = a + b;
-    let a = b;
-    let b = c;
-    let nums = nums - 1;
+    a = b;
+    b = c;
+    nums = nums - 1;
 }
 
 if a == b
 {
     print "Equals";
-}
-else
-{
-    print a;
-    print b;
 }

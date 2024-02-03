@@ -2,9 +2,6 @@ use std::collections::HashMap;
 
 pub type LexerResult<T> = std::result::Result<T, LexerError>;
 
-// Define our error types. These may be customized for our error handling cases.
-// Now we will be able to write our own errors, defer to an underlying error
-// implementation, or do something in between.
 #[derive(Debug, Clone)]
 pub struct LexerError;
 
@@ -14,11 +11,13 @@ pub struct Lexer<'a> {
     keywords: HashMap<String, TokenKind>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub data: TokenData,
 }
 
+#[derive(Debug, Clone)]
 pub struct TokenData {
     pub raw: String,
 }

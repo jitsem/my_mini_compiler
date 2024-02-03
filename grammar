@@ -1,9 +1,10 @@
 program ::= {statement}
 statement ::= "print" (expression | string) sc
-    | "if" comparison openCurly {statement} closeCurly sc
-    | "WHILE" comparison openCurly nl {statement} closeCurly sc
-    | "LET" ident "=" expression sc
-    | "INPUT" ident sc
+    | "if" comparison openCurly {statement} closeCurly
+    | "while" comparison openCurly {statement} closeCurly
+    | "let" ident "=" expression sc
+    | "input" ident sc
+    | ident "=" expression sc
 comparison ::= expression (("==" | "!=" | ">" | ">=" | "<" | "<=") expression)+
 expression ::= term {( "-" | "+" ) term}
 term ::= unary {( "/" | "*" ) unary}
