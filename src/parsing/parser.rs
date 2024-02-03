@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashSet;
 
 use crate::lexing::lexer::{Token, TokenKind};
@@ -346,15 +347,14 @@ impl Parser {
                 Ok(Primary::IdentifierExpression(identifier))
             }
         } else if self.is_current_literal_number() {
-            let nr: i64 = self
-                .current_token()
-                .expect("Expected current token")
-                .data
-                .raw
-                .parse()
-                .expect("expected valid nr");
-            self.advance_token();
-            return Ok(Primary::LiteralNumber(nr));
+            if let TokenKind::LiteralNumber(nr) =
+                self.current_token().expect("Expected current token").kind
+            {
+                self.advance_token();
+                return Ok(Primary::LiteralNumber(nr));
+            } else {
+                panic!("Should not come here");
+            }
         } else {
             return Err(ParserError {
                 token: self.current_token().cloned(),

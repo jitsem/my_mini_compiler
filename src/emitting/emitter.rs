@@ -231,3 +231,26 @@ impl CEmitter {
         emit
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_emit_print() {
+        let print_statement = Statement::Print {
+            option: PrintOption::PrintLiteral("Hello, World!".to_string()),
+        };
+
+        let emitter = CEmitter::new(&[print_statement]);
+        let emitted_code = emitter.emit();
+
+        let expected_code = "\
+        #include <stdio.h>\n\
+        int main(void){\n\
+        \tprintf(\"Hello, World!\");\n\
+        \treturn 0;\n\
+        }\n";
+
+        assert_eq!(emitted_code, expected_code);
+    }
+}

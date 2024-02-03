@@ -11,6 +11,10 @@ Currently C...
 - [x] Parsing
 - [x] Emiting
 
+- [ ] Better CLI
+- [ ] New Target -> .NET IL
+- [ ] Work on performance
+
 ## Credits
 
 - https://austinhenley.com/blog/teenytinycompiler1.html
@@ -39,3 +43,5 @@ if a != b
     print -a * b + b /-5;
 }
 ```
+
+
