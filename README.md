@@ -2,8 +2,8 @@
 
 ## Intro
 
-A mini compiler, written in rust. Still deciding what to compile to.
-Currently C...
+A mini compiler, written in rust. Compiles a mini c-like scripting language to actual C code. 
+Just for fun...
 
 ## Features
 
@@ -12,7 +12,7 @@ Currently C...
 - [x] Emiting
 
 - [x] Better CLI
-- [ ] New Target -> .NET IL
+~~- [ ] New Target -> .NET IL~~
 - [ ] Work on performance
 
 ## Credits

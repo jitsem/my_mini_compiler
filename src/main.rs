@@ -12,7 +12,7 @@ use clap::{Arg, Command};
 use std::process;
 
 fn main() {
-    let matches = Command::new("mcc")
+    let matches = Command::new("mmc")
         .version("1.0")
         .about("My mini compiler which compiles to C.")
         .arg(
@@ -52,8 +52,14 @@ fn main() {
     let lex = Lexer::from(&input);
     let tokens: Vec<Token> = lex.into_iter().collect();
 
-    if tokens.iter().any(|t| t.kind == TokenKind::Invalid) {
+    let invalid_tokens: Vec<&Token> = tokens
+        .iter()
+        .filter(|t| t.kind == TokenKind::Invalid)
+        .collect();
+
+    if !invalid_tokens.is_empty() {
         eprintln!("Found invalid tokens during lexing.");
+        eprintln!("{:?}", invalid_tokens);
         process::exit(1);
     }
 

@@ -84,11 +84,7 @@ impl CEmitter {
         match print_option {
             PrintOption::PrintLiteral(s) => emit.push_str(format!("printf(\"{}\");", s).as_str()),
             PrintOption::PrintExpression(e) => emit.push_str(
-                format!(
-                    "printf(\"%.2f\\n\", (float)({}));",
-                    &Self::emit_expression(e)
-                )
-                .as_str(),
+                format!("printf(\"%d\\n\", (int)({}));", &Self::emit_expression(e)).as_str(),
             ),
         }
         emit
@@ -126,7 +122,7 @@ impl CEmitter {
         let mut emit = String::new();
         emit.push_str(
             format!(
-                "float {} = {};",
+                "int {} = {};",
                 identifier.id,
                 &Self::emit_expression(expression)
             )
@@ -135,15 +131,10 @@ impl CEmitter {
         emit
     }
     fn emit_input(identifier: &Identifier, indent: &mut Indent) -> String {
-        // float c;
-        // if(0 == scanf("%f", &c)) {
-        //     c = 0;
-        //     scanf("%*s");
-        //     }
         let mut emit = String::new();
         emit.push_str(
             format!(
-                "float {};\n{}if(0==scanf(\"%f\", &{})) {{\n{}\t{} = 0;\n{}\tscanf(\"%*s\");\n{}}}",
+                "int {};\n{}if(0==scanf(\"%d\", &{})) {{\n{}\t{} = 0;\n{}\tscanf(\"%*s\");\n{}}}",
                 identifier.id,
                 &indent.current_indent(),
                 identifier.id,
@@ -205,6 +196,7 @@ impl CEmitter {
         let rhs = match term.rhs.as_ref() {
             Some(TermOp::Multiply(t)) => format!(" * {}", &Self::emit_term(t)),
             Some(TermOp::Divide(t)) => format!(" / {}", &Self::emit_term(t)),
+            Some(TermOp::Modulo(t)) => format!(" % {}", &Self::emit_term(t)),
             None => "".to_string(),
         };
         emit.push_str(format!("{}{}", &Self::emit_unary(&term.lhs), rhs).as_str());

@@ -22,7 +22,7 @@ statement ::= "print" (expression | string) sc
     | ident "=" expression sc
 comparison ::= expression (("==" | "!=" | ">" | ">=" | "<" | "<=") expression)+
 expression ::= term {( "-" | "+" ) term}
-term ::= unary {( "/" | "*" ) unary}
+term ::= unary {( "/" | "*" | "%") unary}
 unary ::= ["+" | "-"] primary
 primary ::= number | ident
 sc ::= ';'+
@@ -90,6 +90,7 @@ pub struct Term {
 pub enum TermOp {
     Multiply(Term),
     Divide(Term),
+    Modulo(Term),
 }
 
 #[derive(Debug, Clone)]
@@ -166,7 +167,7 @@ impl Parser {
                         .data
                         .raw
                         .replace('\"', "") //TODO could be cleaner
-                        .to_string();
+                        ;
                     self.advance_token();
                     PrintOption::PrintLiteral(literal)
                 } else {
@@ -295,8 +296,8 @@ impl Parser {
     fn match_term(&mut self) -> ParserResult<Term> {
         let lhs = self.match_unary()?;
         let token = {
-            if self.is_current_asterix_slash_token() {
-                Some(self.match_asterix_slash_token()?)
+            if self.is_current_multiplicative_token() {
+                Some(self.match_multiplicative_token()?)
             } else {
                 None
             }
@@ -309,6 +310,10 @@ impl Parser {
             Some(TokenKind::Slash) => {
                 let term = self.match_term()?;
                 Some(TermOp::Divide(term))
+            }
+            Some(TokenKind::Modulo) => {
+                let term = self.match_term()?;
+                Some(TermOp::Modulo(term))
             }
             Some(_) => panic!("Should not come here"),
             None => None,
@@ -448,8 +453,8 @@ impl Parser {
         }
     }
 
-    fn match_asterix_slash_token(&mut self) -> ParserResult<TokenKind> {
-        if self.is_current_asterix_slash_token() {
+    fn match_multiplicative_token(&mut self) -> ParserResult<TokenKind> {
+        if self.is_current_multiplicative_token() {
             let kind = self.current_token().unwrap().kind;
             self.advance_token();
             Ok(kind)
@@ -457,13 +462,15 @@ impl Parser {
             Err(ParserError {
                 token: None,
                 expected: None,
-                reason: Some("Expected * or / token".to_string()),
+                reason: Some("Expected *,/ or % token".to_string()),
             })
         }
     }
 
-    fn is_current_asterix_slash_token(&self) -> bool {
-        self.is_current_token(TokenKind::Asterisk) || self.is_current_token(TokenKind::Slash)
+    fn is_current_multiplicative_token(&self) -> bool {
+        self.is_current_token(TokenKind::Asterisk)
+            || self.is_current_token(TokenKind::Slash)
+            || self.is_current_token(TokenKind::Modulo)
     }
 
     fn is_current_plus_minus_token(&self) -> bool {
