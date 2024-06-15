@@ -1,0 +1,63 @@
+print "Complex script execution starts\n";
+input depth;
+
+let x = 10;
+let y = 20;
+let z = 0;
+
+if x > 5 {
+    print "X is greater than 5";
+    while y > 0 {
+        y = y - 2;
+        if y % 4 == 0 {
+            print "Y is now a multiple of 4";
+            let temp = x + y;
+            if temp % 2 == 0 {
+                print "Temp is even";
+            } else {
+                print "Temp is odd";
+                while temp > 0 {
+                    temp = temp - 1;
+                    if temp == 5 {
+                        print "Temp reached 5";
+                        break;
+                    }
+                }
+            }
+        } else if y == 10 {
+            print "Y hit 10";
+            for let i = 0; i < depth; i = i + 1 {
+                z = z + i;
+                print "Incrementing Z in a loop";
+                if z > 50 {
+                    print "Z exceeded 50";
+                    break;
+                }
+                if i == depth / 2 {
+                    print "Halfway through depth";
+                    while z < 75 {
+                        z = z + 2;
+                        print "Rapidly increasing Z";
+                    }
+                }
+            }
+        }
+        print "Current Y: ";
+        print y;
+    }
+    if x + y < z {
+        print "X + Y is less than Z";
+    } else {
+        print "X + Y is not less than Z";
+    }
+} else {
+    print "X is not greater than 5";
+}
+
+print "Final Values:";
+print "X = ";
+print x;
+print "Y = ";
+print y;
+print "Z = ";
+print z;

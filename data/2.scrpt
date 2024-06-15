@@ -1,0 +1,55 @@
+print "How many Fibonacci numbers to print?\n";
+input nums;
+
+let a = 0;
+let b = 1;
+let i = 0;
+
+while nums > 0 {
+    if i + 0 < 2 {
+        print "Starting with: ";
+        print i;
+        print "\n";
+        let c = a + b;
+        a = b;
+        b = c;
+        print b;
+        print "\n";
+        nums = nums - 1;
+        
+        if b % 5 == 0 {
+            print "Found multiple of 5\n";
+        }
+        
+        if b % 2 == 0 {
+            print "Even number found\n";
+            while a < b {
+                print "Incrementing a to catch up with b\n";
+                a = a + 1;
+                if a + 1 == b {
+                    print "Almost there...\n";
+                }
+            }
+        }
+    }
+    i = i + 1;
+}
+
+if a != b {
+    print "In the end, a and b diverged.\n";
+    let result = -a * b + b / -5;
+    print "Complex operation result: ";
+    print result;
+    print "\n";
+
+}
+
+print "Looping to count back down.\n";
+while nums < 0 {
+    print nums;
+    nums = nums + 1;
+    
+    if nums == -5 {
+        print "Halfway back!\n";
+    }
+}
